@@ -1,4 +1,5 @@
 import { pgTable, uuid, varchar, timestamp, jsonb, integer, pgEnum } from 'drizzle-orm/pg-core'
+import { relations } from 'drizzle-orm'
 
 export const statusEnum = pgEnum('workflow_status', ['draft', 'approved', 'deployed', 'paused'])
 export const userRoleEnum = pgEnum('user_role', ['viewer', 'developer', 'approver', 'admin'])
@@ -54,3 +55,14 @@ export const secrets = pgTable('secrets', {
   tag: varchar('tag', { length: 255 }).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
+
+export const organizationRelations = relations(organizations, ({ many }) => ({
+  workflows: many(workflows),
+}))
+
+export const workflowRelations = relations(workflows, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [workflows.orgId],
+    references: [organizations.id],
+  }),
+}))
