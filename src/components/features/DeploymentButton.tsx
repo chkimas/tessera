@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { deployWorkflowAction } from '@/actions/workflow-actions'
+import { WorkflowSpecification } from '@/core/domain/specification'
 
 interface Props {
   workflowId: string
+  specification: WorkflowSpecification
 }
 
 export default function DeploymentButton({ workflowId }: Props) {
