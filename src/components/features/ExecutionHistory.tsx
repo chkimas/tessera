@@ -1,3 +1,7 @@
+import { useState } from 'react'
+import { Eye } from 'lucide-react'
+import ExecutionDetailModal from '@/components/features/ExecutionDetailModal'
+
 export interface LogMetadata {
   n8nId?: string
   error?: string
@@ -14,51 +18,41 @@ export interface LogEntry {
 }
 
 export function ExecutionHistory({ logs }: { logs: LogEntry[] }) {
+  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null)
+
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-        <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-          System Activity Log
-        </h3>
-      </div>
-      <div className="divide-y divide-slate-100">
+    <div className="space-y-4">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         {logs.map(log => (
           <div
             key={log.id}
-            className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+            className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors border-b last:border-0 border-slate-100 group"
           >
             <div className="flex items-center gap-4">
               <div
-                className={`w-2 h-2 rounded-full ${
-                  log.action.includes('DEPLOYED') ? 'bg-indigo-500' : 'bg-emerald-500'
-                }`}
+                className={`h-2 w-2 rounded-full ${log.action.includes('ERROR') ? 'bg-red-500' : 'bg-emerald-500'}`}
               />
               <div>
-                <p className="text-sm font-semibold text-slate-800">
-                  {log.action.replace('_', ' ')}
-                </p>
-                <p className="text-[10px] text-slate-400 font-mono">
-                  Target: {log.workflowId?.slice(0, 8) || 'System'}
+                <p className="text-sm font-semibold text-slate-700">{log.action}</p>
+                <p className="text-[10px] text-slate-400 font-mono uppercase">
+                  {log.id.slice(0, 8)}
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-slate-500">
-                {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'Recent'}
-              </p>
-              <p className="text-[10px] text-slate-400">
-                {log.timestamp ? new Date(log.timestamp).toLocaleDateString() : ''}
-              </p>
-            </div>
+
+            <button
+              onClick={() => setSelectedLog(log)}
+              className="flex items-center gap-2 text-xs font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-all hover:text-indigo-700"
+            >
+              <Eye className="h-3.5 w-3.5" /> View Details
+            </button>
           </div>
         ))}
-
-        {logs.length === 0 && (
-          <div className="p-10 text-center text-slate-400 text-sm italic">
-            No execution history found.
-          </div>
-        )}
       </div>
+
+      {selectedLog && (
+        <ExecutionDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />
+      )}
     </div>
   )
 }

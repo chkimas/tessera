@@ -10,6 +10,7 @@ import TemplateGallery from '@/components/features/TemplateGallery'
 import { WorkflowSpecification } from '@/core/domain/specification'
 import { protectTenant } from '@/lib/auth/tenant-guard'
 import { notFound } from 'next/navigation'
+import EmptyWorkflows from '@/components/features/EmptyWorkflows'
 
 interface PageProps {
   params: Promise<{ orgId: string }>
@@ -62,30 +63,38 @@ export default async function DashboardPage({ params }: PageProps) {
             <h2 className="text-xl font-bold text-slate-800 mb-4 tracking-tight">
               Active Pipelines
             </h2>
-            <div className="grid grid-cols-1 gap-4">
-              {org.workflows.map(wf => (
-                <div
-                  key={wf.id}
-                  className="p-4 border border-slate-200 rounded-xl bg-white flex justify-between items-center shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div>
-                    <h3 className="font-semibold text-slate-700">{wf.name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-slate-400 uppercase font-mono">
-                        ID: {wf.id.slice(0, 8)}
-                      </span>
-                      <span className="w-1 h-1 rounded-full bg-slate-300" />
-                      <span className="text-xs text-indigo-600 font-medium">{wf.status}</span>
+            {org.workflows.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4">
+                {org.workflows.map(wf => (
+                  <div
+                    key={wf.id}
+                    className="p-4 border border-slate-200 rounded-xl bg-white flex justify-between items-center shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div>
+                      <h3 className="font-semibold text-slate-700">{wf.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-slate-400 uppercase font-mono">
+                          ID: {wf.id.slice(0, 8)}
+                        </span>
+                        <span className="w-1 h-1 rounded-full bg-slate-300" />
+                        <span className="text-xs text-indigo-600 font-medium">{wf.status}</span>
+                      </div>
                     </div>
+                    <DeploymentButton
+                      workflowId={wf.id}
+                      specification={wf.specification as WorkflowSpecification}
+                    />
                   </div>
-                  <DeploymentButton
-                    workflowId={wf.id}
-                    specification={wf.specification as WorkflowSpecification}
-                  />
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyWorkflows />
+            )}
           </section>
+
+          <div id="template-gallery">
+            <TemplateGallery orgId={verifiedOrgId} planStatus={org.planStatus ?? 'inactive'} />
+          </div>
 
           <section>
             <h2 className="text-xl font-bold text-slate-800 mb-4 tracking-tight">
