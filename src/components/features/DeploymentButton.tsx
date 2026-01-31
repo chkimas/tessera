@@ -2,25 +2,29 @@
 
 import { useState } from 'react'
 import { deployWorkflowAction } from '@/actions/workflow-actions'
-import { WorkflowSpecification } from '@/core/domain/specification'
 
 interface Props {
   workflowId: string
-  specification: WorkflowSpecification
 }
 
-export default function DeploymentButton({ workflowId, specification }: Props) {
+export default function DeploymentButton({ workflowId }: Props) {
   const [isPending, setIsPending] = useState(false)
 
   async function handleDeploy() {
     setIsPending(true)
-    const result = await deployWorkflowAction(workflowId, specification)
+
+    const result = await deployWorkflowAction({
+      workflowId,
+      userId: '00000000-0000-0000-0000-000000000000',
+      userRole: 'admin',
+    })
 
     if (result.success) {
       alert('Workflow deployed to n8n successfully.')
     } else {
-      alert('Deployment failed. Check server logs.')
+      alert(`Deployment failed: ${result.error}`)
     }
+
     setIsPending(false)
   }
 

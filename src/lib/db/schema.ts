@@ -37,7 +37,9 @@ export const auditLogs = pgTable('audit_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
   workflowId: uuid('workflow_id').references(() => workflows.id, { onDelete: 'cascade' }),
   action: varchar('action', { length: 50 }).notNull(),
-  actorId: varchar('actor_id', { length: 255 }).notNull(),
+  actorId: uuid('actor_id')
+    .notNull()
+    .references(() => users.id),
   previousStatus: statusEnum('previous_status'),
   newStatus: statusEnum('new_status'),
   payload: jsonb('payload'),

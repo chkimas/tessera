@@ -4,38 +4,68 @@ import { db } from '@/lib/db'
 import { workflows, auditLogs } from '@/lib/db/schema'
 import { n8nClient } from '@/lib/n8n/client'
 import { compileSpecToN8n } from '@/core/use-cases/compile-to-n8n'
-import { WorkflowSpecification } from '@/core/domain/specification'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+import { WorkflowSpecification } from '@/core/domain/specification'
 
-export async function deployWorkflowAction(workflowId: string, spec: WorkflowSpecification) {
+const DeploySchema = z.object({
+  workflowId: z.string().uuid(),
+  userId: z.string().uuid(),
+  userRole: z.enum(['viewer', 'developer', 'approver', 'admin']),
+})
+
+export async function deployWorkflowAction(formData: unknown) {
   try {
-    await db
-      .update(workflows)
-      .set({
-        specification: spec,
-        status: 'approved',
-        updatedAt: new Date(),
-      })
-      .where(eq(workflows.id, workflowId))
+    const { workflowId, userId, userRole } = DeploySchema.parse(formData)
 
-    const compiledData = compileSpecToN8n(spec)
-    const n8nResult = await n8nClient.deployWorkflow(workflowId, compiledData)
-
-    await db.update(workflows).set({ status: 'deployed' }).where(eq(workflows.id, workflowId))
-
-    await db.insert(auditLogs).values({
-      workflowId,
-      action: 'DEPLOY',
-      actorId: 'system-user',
-      newStatus: 'deployed',
-      payload: { n8nId: n8nResult.id },
+    const workflow = await db.query.workflows.findFirst({
+      where: eq(workflows.id, workflowId),
+      with: { organization: true },
     })
 
-    revalidatePath('/workflows')
-    return { success: true }
+    if (!workflow) throw new Error('Workflow not found')
+    if (userRole !== 'admin') {
+      throw new Error('Permission Denied: Admin role required for deployment')
+    }
+    if (workflow.organization.planStatus !== 'active') {
+      throw new Error('Commercial Restriction: Active Stripe subscription required')
+    }
+
+    const n8nResult = await db.transaction(async tx => {
+      await tx
+        .update(workflows)
+        .set({ status: 'approved', updatedAt: new Date() })
+        .where(eq(workflows.id, workflowId))
+
+      const compiledData = compileSpecToN8n(workflow.specification as WorkflowSpecification)
+      const result = await n8nClient.deployWorkflow(workflow.name, compiledData)
+
+      await tx
+        .update(workflows)
+        .set({ status: 'deployed', updatedAt: new Date() })
+        .where(eq(workflows.id, workflowId))
+
+      await tx.insert(auditLogs).values({
+        workflowId,
+        action: 'DEPLOY',
+        actorId: userId,
+        newStatus: 'deployed',
+        payload: { n8nId: result.id },
+      })
+
+      return result
+    })
+
+    revalidatePath('/')
+    revalidatePath(`/workflows/${workflowId}`)
+
+    return { success: true, n8nId: n8nResult.id }
   } catch (error) {
-    console.error('Deployment Orchestration Failed:', error)
-    return { success: false, error: 'Deployment Failed' }
+    console.error('Deployment Failed:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown deployment error',
+    }
   }
 }

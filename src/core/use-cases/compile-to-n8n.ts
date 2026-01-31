@@ -17,7 +17,6 @@ function mapNodeToN8n(node: WorkflowNode) {
   const n8nType = node.type === 'TRIGGER' ? 'n8n-nodes-base.webhook' : 'n8n-nodes-base.httpRequest'
 
   return {
-    parameters: node.data,
     id: node.id,
     name: node.name,
     type: n8nType,
@@ -26,8 +25,18 @@ function mapNodeToN8n(node: WorkflowNode) {
   }
 }
 
-export function compileSpecToN8n(spec: WorkflowSpecification) {
-  const n8nNodes = spec.nodes.map(mapNodeToN8n)
+export function compileSpecToN8n(spec: WorkflowSpecification, workflowId: string) {
+  const n8nNodes = spec.nodes.map(node => {
+    const base = mapNodeToN8n(node)
+    return {
+      ...base,
+      parameters: {
+        ...node.data,
+        onCompleteCallback: `${process.env.NEXT_PUBLIC_APP_URL}/api/workflows/execution`,
+        tesseraId: workflowId,
+      },
+    }
+  })
 
   const n8nConnections = spec.edges.reduce<N8nConnections>((acc, edge) => {
     const sourceNodeName = spec.nodes.find(n => n.id === edge.source)?.name
@@ -44,8 +53,8 @@ export function compileSpecToN8n(spec: WorkflowSpecification) {
   return {
     nodes: n8nNodes,
     connections: n8nConnections,
-    settings: { executionTimeout: spec.metadata.expectedTimeout },
+    settings: { executionOrder: 'v1' },
     staticData: null,
-    meta: { instanceId: 'control-plane-compiled' },
+    meta: { instanceId: 'tessera-control-plane' },
   }
 }

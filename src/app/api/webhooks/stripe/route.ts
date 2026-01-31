@@ -20,7 +20,13 @@ export async function POST(req: NextRequest) {
       process.env.STRIPE_WEBHOOK_SECRET as string
     )
 
-    if (event.type === 'customer.subscription.updated') {
+    const relevantEvents = [
+      'customer.subscription.created',
+      'customer.subscription.updated',
+      'customer.subscription.deleted',
+    ]
+
+    if (relevantEvents.includes(event.type)) {
       const subscription = event.data.object as Stripe.Subscription
 
       await db
