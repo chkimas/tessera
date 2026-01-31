@@ -42,3 +42,15 @@ export const auditLogs = pgTable('audit_logs', {
   payload: jsonb('payload'),
   timestamp: timestamp('timestamp').defaultNow().notNull(),
 })
+
+export const secrets = pgTable('secrets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orgId: uuid('org_id')
+    .references(() => organizations.id)
+    .notNull(),
+  keyName: varchar('key_name', { length: 255 }).notNull(),
+  encryptedValue: varchar('encrypted_value').notNull(),
+  iv: varchar('iv', { length: 255 }).notNull(),
+  tag: varchar('tag', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
