@@ -33,15 +33,14 @@ export async function POST(req: NextRequest) {
       process.env.STRIPE_WEBHOOK_SECRET as string
     )
 
-    const relevantEvents = [
+    const subscriptionEvents = [
       'customer.subscription.created',
       'customer.subscription.updated',
       'customer.subscription.deleted',
     ]
 
-    if (relevantEvents.includes(event.type)) {
+    if (subscriptionEvents.includes(event.type)) {
       const subscription = event.data.object as Stripe.Subscription
-
       const orgId = subscription.metadata?.orgId
 
       if (orgId) {
@@ -56,9 +55,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session
+      const orgId = session.metadata?.orgId
+
+      if (orgId && session.subscription) {
+        await db
+          .update(organizations)
+          .set({
+            planStatus: 'active',
+            stripeSubscriptionId: session.subscription as string,
+            stripeCustomerId: session.customer as string,
+          })
+          .where(eq(organizations.id, orgId))
+      }
+    }
+
     return NextResponse.json({ received: true })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error('Webhook error:', err)
+
+    const message = err instanceof Error ? err.message : 'Webhook error'
     return NextResponse.json({ error: message }, { status: 400 })
   }
 }

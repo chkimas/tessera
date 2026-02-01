@@ -63,6 +63,14 @@ const TEMPLATES: Template[] = [
     isPremium: true,
     category: 'Infrastructure',
   },
+  {
+    id: 'github-slack',
+    name: 'GitHub to Slack Notifier',
+    description: 'Poll for new GitHub issues every 15 minutes and post them to a Slack channel.',
+    icon: '🤖',
+    isPremium: true,
+    category: 'DevOps',
+  },
 ]
 
 export default function TemplateGallery({

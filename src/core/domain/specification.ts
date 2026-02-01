@@ -1,3 +1,11 @@
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: JsonValue }
+  | JsonValue[]
+
 export type NodeType = 'TRIGGER' | 'ACTION' | 'TRANSFORM'
 
 export type TriggerSource =
@@ -6,9 +14,15 @@ export type TriggerSource =
   | { type: 'EVENT'; topic: string }
 
 export type ActionTarget =
-  | { type: 'HTTP_REQUEST'; url: string; method: string }
+  | {
+      type: 'HTTP_REQUEST';
+      url: string;
+      method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+      body?: JsonValue; 
+      headers?: Record<string, string>;
+    }
   | { type: 'DATABASE_UPSERT'; table: string }
-  | { type: 'N8N_WORKFLOW'; workflowId: string }
+  | { type: 'N8N_WORKFLOW'; workflowId: string };
 
 export interface WorkflowNode {
   id: string
@@ -19,17 +33,26 @@ export interface WorkflowNode {
 }
 
 export interface WorkflowEdge {
+  // FIXED: was "Edge"
   id: string
   source: string
   target: string
 }
 
+export interface WorkflowMetadata {
+  expectedTimeout: number
+  retries: number
+}
+
 export interface WorkflowSpecification {
-  version: '1.0.0'
+  version: string
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
-  metadata: {
-    expectedTimeout: number // in seconds
-    retries: number
-  }
+  metadata: WorkflowMetadata
+  parameters?: Array<{
+    key: string
+    label: string
+    type: 'text' | 'secret'
+    required: boolean
+  }>
 }

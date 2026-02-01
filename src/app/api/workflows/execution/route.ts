@@ -10,6 +10,19 @@ export async function POST(req: NextRequest) {
 
   if (!workflowId) return NextResponse.json({ error: 'ID required' }, { status: 400 })
 
+  const authHeader = req.headers.get('authorization')
+  const expectedToken = process.env.N8N_CALLBACK_SECRET
+
+  if (!expectedToken) {
+    console.error('N8N_CALLBACK_SECRET not configured')
+    return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
+  }
+
+  if (authHeader !== `Bearer ${expectedToken}`) {
+    console.warn(`Unauthorized execution attempt for workflow ${workflowId}`)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const workflow = await db.query.workflows.findFirst({
       where: eq(workflows.id, workflowId),

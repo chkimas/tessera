@@ -2,15 +2,16 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
 const isProtectedRoute = createRouteMatcher(['/dashboard(.*)'])
+const isWebhookRoute = createRouteMatcher(['/api/webhooks(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
-  const requestId = crypto.randomUUID()
-  const requestHeaders = new Headers(req.headers)
-  requestHeaders.set('x-control-plane-trace-id', requestId)
+  if (isWebhookRoute(req)) {
+    return NextResponse.next()
+  }
 
   if (req.nextUrl.pathname.startsWith('/api')) {
-    const contentType = req.headers.get('content-type')
-    if (req.method !== 'GET' && contentType !== 'application/json') {
+    const contentType = req.headers.get('content-type') || ''
+    if (req.method !== 'GET' && !contentType.includes('application/json')) {
       return NextResponse.json(
         { error: 'Protocol Violation: API requires application/json' },
         { status: 415 }
@@ -22,11 +23,7 @@ export default clerkMiddleware(async (auth, req) => {
     await auth.protect()
   }
 
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  })
+  return NextResponse.next()
 })
 
 export const config = {

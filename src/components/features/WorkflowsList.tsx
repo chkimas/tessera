@@ -13,6 +13,7 @@ interface Workflow {
   name: string
   status: string
   updatedAt: Date
+  n8nWebhookUrl?: string
 }
 
 interface WorkflowsListProps {
@@ -112,6 +113,21 @@ export default function WorkflowsList({ orgId, workflows }: WorkflowsListProps) 
                     <Link href={`/dashboard/${orgId}/workflows/${wf.id}`}>View</Link>
                   </Button>
                   <DeploymentButton workflowId={wf.id} />
+                  {wf.n8nWebhookUrl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await fetch(wf.n8nWebhookUrl!, { method: 'POST' })
+                        } catch (error) {
+                          console.error('Test execution failed:', error)
+                        }
+                      }}
+                    >
+                      Test Now
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
