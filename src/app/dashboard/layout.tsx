@@ -1,7 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
-import { UserButton } from '@clerk/nextjs'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { orgId, userId } = await auth()

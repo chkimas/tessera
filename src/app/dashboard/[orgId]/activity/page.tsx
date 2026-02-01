@@ -5,6 +5,8 @@ import { auth } from '@clerk/nextjs/server'
 import { notFound } from 'next/navigation'
 import { ExecutionHistory } from '@/components/features/ExecutionHistory'
 import { Activity, Download } from 'lucide-react'
+import { PageHeader } from '@/components/tessera'
+import { Button } from '@/components/ui/button'
 
 interface PageProps {
   params: Promise<{ orgId: string }>
@@ -31,33 +33,29 @@ export default async function ActivityPage({ params }: PageProps) {
   }))
 
   return (
-    <main className="p-8 max-w-7xl mx-auto space-y-8">
-      <header className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-            <Activity className="w-6 h-6 text-indigo-500" />
-            System Activity
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Real-time execution logs and audit history for all organization pipelines.
-          </p>
-        </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
-          <Download className="w-4 h-4" />
-          Export CSV
-        </button>
-      </header>
+    <main className="p-6 max-w-7xl mx-auto space-y-6">
+      <PageHeader
+        title="System Activity"
+        description="Real-time execution logs and audit history for all organization pipelines"
+        icon={<Activity className="w-6 h-6 text-indigo-500" />}
+        actions={
+          <Button variant="outline" size="sm">
+            <Download className="w-4 h-4" />
+            Export CSV
+          </Button>
+        }
+      />
 
-      <section className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-          <h2 className="text-sm font-bold text-slate-800">Execution History</h2>
-          <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-500 uppercase tracking-widest">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Live Monitoring
-          </span>
+      <div className="bg-white border border-slate-200 shadow-sm">
+        <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+          <h2 className="text-sm font-semibold text-slate-900">Execution History</h2>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-medium text-emerald-600">Live</span>
+          </div>
         </div>
         <ExecutionHistory logs={logs} />
-      </section>
+      </div>
     </main>
   )
 }

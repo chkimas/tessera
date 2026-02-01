@@ -1,28 +1,23 @@
-import { cn } from '@/lib/utils'
+import { ReactNode } from 'react'
 
-type PageHeaderProps = {
+interface PageHeaderProps {
   title: string
   description?: string
-  icon?: React.ReactNode
-  actions?: React.ReactNode
-  className?: string
+  icon?: ReactNode
+  actions?: ReactNode
 }
 
-export function PageHeader({ title, description, icon, actions, className }: PageHeaderProps) {
+export function PageHeader({ title, description, icon, actions }: PageHeaderProps) {
   return (
-    <header
-      className={cn('flex justify-between items-start pb-6 border-b border-slate-200', className)}
-    >
+    <div className="flex justify-between items-center">
       <div className="flex items-center gap-3">
-        {icon && <div className="text-indigo-500">{icon}</div>}
+        {icon}
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight font-display flex items-center gap-3">
-            {title}
-          </h1>
-          {description && <p className="text-slate-500 text-sm mt-1 font-medium">{description}</p>}
+          <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+          {description && <p className="text-sm text-slate-500 mt-0.5">{description}</p>}
         </div>
       </div>
-      {actions && <div className="flex items-center gap-3">{actions}</div>}
-    </header>
+      {actions}
+    </div>
   )
 }
