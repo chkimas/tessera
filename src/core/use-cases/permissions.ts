@@ -1,10 +1,16 @@
-import { UserRole, Permissions } from '@/core/domain/entitlements'
+import { UserRole } from '@/core/domain/entitlements'
+
+const ROLE_PERMISSIONS = {
+  CAN_EDIT: ['developer', 'admin'],
+  CAN_APPROVE: ['approver', 'admin'],
+  CAN_DEPLOY: ['admin'],
+} as const
 
 export function canUserPerformAction(
   userRole: UserRole,
-  action: keyof typeof Permissions
+  action: keyof typeof ROLE_PERMISSIONS
 ): boolean {
-  const allowedRoles = Permissions[action] as readonly UserRole[]
+  const allowedRoles = ROLE_PERMISSIONS[action] as readonly UserRole[]
   return allowedRoles.includes(userRole)
 }
 

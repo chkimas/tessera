@@ -1,16 +1,13 @@
 import { db } from '@/lib/db'
-import { organizations, secrets, auditLogs } from '@/lib/db/schema'
-import { eq, desc } from 'drizzle-orm'
-import SecretsForm from '@/components/features/SecretsForm'
-import SecretsList from '@/components/features/SecretsList'
-import DeploymentButton from '@/components/features/DeploymentButton'
+import { organizations } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 import BillingStatus from '@/components/features/BillingStatus'
-import { ExecutionHistory, LogEntry, LogMetadata } from '@/components/features/ExecutionHistory'
+import { ExecutionHistory } from '@/components/features/ExecutionHistory'
 import TemplateGallery from '@/components/features/TemplateGallery'
-import { WorkflowSpecification } from '@/core/domain/specification'
-import { protectTenant } from '@/lib/auth/tenant-guard'
+import { auth } from '@clerk/nextjs/server'
 import { notFound } from 'next/navigation'
-import EmptyWorkflows from '@/components/features/EmptyWorkflows'
+import Link from 'next/link'
+import { ArrowRight, LayoutGrid, ShieldCheck, Activity } from 'lucide-react'
 
 interface PageProps {
   params: Promise<{ orgId: string }>
@@ -18,97 +15,92 @@ interface PageProps {
 
 export default async function DashboardPage({ params }: PageProps) {
   const { orgId } = await params
-  const { orgId: verifiedOrgId } = await protectTenant(orgId)
+  const { userId, orgSlug } = await auth()
+  if (!userId) notFound()
 
-  const org = await db.query.organizations.findFirst({
-    where: eq(organizations.id, verifiedOrgId),
-    with: { workflows: true },
+  let org = await db.query.organizations.findFirst({
+    where: eq(organizations.id, orgId),
   })
+
+  if (!org) {
+    await db
+      .insert(organizations)
+      .values({
+        id: orgId,
+        name: orgSlug || 'New Workspace',
+        planStatus: 'free',
+      })
+      .onConflictDoNothing()
+
+    org = await db.query.organizations.findFirst({
+      where: eq(organizations.id, orgId),
+    })
+  }
 
   if (!org) notFound()
 
-  const orgSecrets = await db.query.secrets.findMany({
-    where: eq(secrets.orgId, verifiedOrgId),
-  })
-
-  const rawLogs = await db.query.auditLogs.findMany({
-    where: eq(auditLogs.workflowId, org.workflows[0]?.id || ''),
-    orderBy: [desc(auditLogs.timestamp)],
-    limit: 5,
-  })
-
-  const formattedLogs: LogEntry[] = rawLogs.map(log => ({
-    id: log.id,
-    action: log.action,
-    workflowId: log.workflowId,
-    timestamp: log.timestamp,
-    metadata: (log.payload as LogMetadata) || {},
-  }))
-
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-12">
-      <header className="flex justify-between items-end border-b pb-6">
+    <main className="p-8 max-w-7xl mx-auto space-y-12">
+      <header className="flex justify-between items-center border-b pb-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">{org.name}</h1>
-          <p className="text-slate-500 font-medium">Control Plane Dashboard</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">{org.name}</h1>
+          <p className="text-slate-500 font-medium text-sm">Organization Overview</p>
         </div>
-        <BillingStatus plan="Pro" status={org.planStatus} />
+        <BillingStatus status={org.planStatus} />
       </header>
 
-      <TemplateGallery orgId={verifiedOrgId} planStatus={org.planStatus ?? 'inactive'} />
+      <section>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">Blueprint Library</h2>
+        </div>
+        <TemplateGallery orgId={orgId} planStatus={org.planStatus} />
+      </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-10">
-          <section>
-            <h2 className="text-xl font-bold text-slate-800 mb-4 tracking-tight">
-              Active Pipelines
-            </h2>
-            {org.workflows.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4">
-                {org.workflows.map(wf => (
-                  <div
-                    key={wf.id}
-                    className="p-4 border border-slate-200 rounded-xl bg-white flex justify-between items-center shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    <div>
-                      <h3 className="font-semibold text-slate-700">{wf.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] text-slate-400 uppercase font-mono">
-                          ID: {wf.id.slice(0, 8)}
-                        </span>
-                        <span className="w-1 h-1 rounded-full bg-slate-300" />
-                        <span className="text-xs text-indigo-600 font-medium">{wf.status}</span>
-                      </div>
-                    </div>
-                    <DeploymentButton
-                      workflowId={wf.id}
-                      specification={wf.specification as WorkflowSpecification}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyWorkflows />
-            )}
-          </section>
-
-          <div id="template-gallery">
-            <TemplateGallery orgId={verifiedOrgId} planStatus={org.planStatus ?? 'inactive'} />
-          </div>
-
-          <section>
-            <h2 className="text-xl font-bold text-slate-800 mb-4 tracking-tight">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <section className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
+              <Activity className="w-5 h-5 text-indigo-500" />
               System Activity
             </h2>
-            <ExecutionHistory logs={formattedLogs} />
-          </section>
-        </div>
+            <Link
+              href={`/dashboard/${orgId}/activity`}
+              className="text-xs font-bold text-indigo-600 flex items-center hover:text-indigo-700 transition-colors"
+            >
+              VIEW ALL <ArrowRight className="ml-1 w-3 h-3" />
+            </Link>
+          </div>
+          <ExecutionHistory logs={[]} />
+        </section>
 
-        <aside className="space-y-6">
-          <SecretsForm orgId={verifiedOrgId} />
-          <SecretsList secrets={orgSecrets} />
-        </aside>
+        <section className="p-8 bg-slate-50 rounded-3xl border border-slate-200 flex flex-col justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-slate-800 tracking-tight mb-2">
+              Resource Management
+            </h2>
+            <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+              Access your pipelines and sensitive credentials through dedicated management modules.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Link
+              href={`/dashboard/${orgId}/workflows`}
+              className="group flex flex-col gap-3 p-4 bg-white border border-slate-200 rounded-2xl hover:border-indigo-300 hover:shadow-md transition-all"
+            >
+              <LayoutGrid className="w-5 h-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+              <span className="text-sm font-bold text-slate-700">Workflows</span>
+            </Link>
+            <Link
+              href={`/dashboard/${orgId}/vault`}
+              className="group flex flex-col gap-3 p-4 bg-white border border-slate-200 rounded-2xl hover:border-indigo-300 hover:shadow-md transition-all"
+            >
+              <ShieldCheck className="w-5 h-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+              <span className="text-sm font-bold text-slate-700">Security Vault</span>
+            </Link>
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   )
 }

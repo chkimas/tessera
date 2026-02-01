@@ -1,12 +1,15 @@
-import { randomBytes, createCipheriv, createDecipheriv } from 'crypto'
+import { randomBytes, createCipheriv, createDecipheriv, scryptSync } from 'crypto'
 
 const ALGORITHM = 'aes-256-gcm'
-const KEY = Buffer.from(process.env.ENCRYPTION_KEY as string, 'hex')
+const IV_LENGTH = 12
+const TAG_LENGTH = 16
+
+const MASTER_KEY = scryptSync(process.env.ENCRYPTION_KEY as string, 'salt', 32)
 
 export const VaultService = {
   encrypt(text: string): { content: string; iv: string; tag: string } {
-    const iv = randomBytes(12)
-    const cipher = createCipheriv(ALGORITHM, KEY, iv)
+    const iv = randomBytes(IV_LENGTH)
+    const cipher = createCipheriv(ALGORITHM, MASTER_KEY, iv)
 
     let encrypted = cipher.update(text, 'utf8', 'hex')
     encrypted += cipher.final('hex')
@@ -18,9 +21,16 @@ export const VaultService = {
     }
   },
 
-  decrypt(content: string, iv: string, tag: string): string {
-    const decipher = createDecipheriv(ALGORITHM, KEY, Buffer.from(iv, 'hex'))
-    decipher.setAuthTag(Buffer.from(tag, 'hex'))
+  decrypt(content: string, ivHex: string, tagHex: string): string {
+    const iv = Buffer.from(ivHex, 'hex')
+    const tag = Buffer.from(tagHex, 'hex')
+
+    if (iv.length !== IV_LENGTH || tag.length !== TAG_LENGTH) {
+      throw new Error('Invalid vault parameters: integrity check failed')
+    }
+
+    const decipher = createDecipheriv(ALGORITHM, MASTER_KEY, iv)
+    decipher.setAuthTag(tag)
 
     let decrypted = decipher.update(content, 'hex', 'utf8')
     decrypted += decipher.final('utf8')

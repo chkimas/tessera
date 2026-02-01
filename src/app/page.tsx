@@ -1,57 +1,41 @@
-import { db } from '@/lib/db'
-import { workflows } from '@/lib/db/schema'
-import { desc } from 'drizzle-orm'
-import DeploymentButton from '@/components/features/DeploymentButton'
-import { WorkflowSpecification } from '@/core/domain/specification'
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
+import { Metadata } from 'next'
 
-export default async function DashboardPage() {
-  const allWorkflows = await db.select().from(workflows).orderBy(desc(workflows.updatedAt))
+export const metadata: Metadata = {
+  title: 'Tessera | Control Plane',
+  description: 'Enterprise Governance for n8n Workflows',
+}
+
+export default async function LandingPage() {
+  const { userId, orgId } = await auth()
+  if (!userId) {
+    redirect('/sign-in')
+  }
+  if (orgId) {
+    redirect(`/dashboard/${orgId}`)
+  }
 
   return (
-    <main className="p-8 max-w-7xl mx-auto">
-      <header className="flex justify-between items-center mb-10">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Control Plane</h1>
-        <div className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-          Executor: n8n (Connected)
-        </div>
-      </header>
-
-      <div className="grid gap-6">
-        {allWorkflows.map(workflow => (
-          <div
-            key={workflow.id}
-            className="flex items-center justify-between p-6 bg-white border border-slate-200 rounded-lg shadow-sm"
+    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-6 text-center">
+      <div className="max-w-md space-y-6">
+        <h1 className="text-4xl font-black tracking-tighter text-slate-900">
+          TESSERA<span className="text-indigo-600">.</span>
+        </h1>
+        <p className="text-slate-600 text-sm leading-relaxed">
+          Your account is authenticated, but you aren&apos;t part of an organization yet.
+        </p>
+        <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
+            Next Step
+          </p>
+          <a
+            href="/onboarding"
+            className="inline-block w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors"
           >
-            <div>
-              <h2 className="text-lg font-semibold text-slate-800">{workflow.name}</h2>
-              <div className="flex gap-4 mt-1 text-sm text-slate-500">
-                <span>Version: {workflow.version}</span>
-                <span className="capitalize">
-                  Status:
-                  <strong
-                    className={workflow.status === 'deployed' ? 'text-green-600' : 'text-amber-600'}
-                  >
-                    {' '}
-                    {workflow.status}
-                  </strong>
-                </span>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <DeploymentButton
-                workflowId={workflow.id}
-                specification={workflow.specification as WorkflowSpecification}
-              />
-            </div>
-          </div>
-        ))}
-
-        {allWorkflows.length === 0 && (
-          <div className="text-center py-20 border-2 border-dashed border-slate-200 rounded-xl text-slate-400">
-            No workflows found in the Control Plane.
-          </div>
-        )}
+            Create or Join Organization
+          </a>
+        </div>
       </div>
     </main>
   )

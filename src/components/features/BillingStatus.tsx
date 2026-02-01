@@ -1,34 +1,44 @@
+import React from 'react'
+
 interface BillingStatusProps {
-  plan: string
   status: string
 }
 
-export default function BillingStatus({ plan, status }: BillingStatusProps) {
-  const isActive = status === 'active' || status === 'trialing'
+export default function BillingStatus({ status }: BillingStatusProps) {
+  const isPro = status === 'active' || status === 'trialing'
 
   return (
-    <div className="flex items-center gap-4 px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm">
-      <div>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          Account Tier
-        </p>
-        <p className="text-sm font-bold text-slate-900">{plan}</p>
-      </div>
-
-      <div className="h-8 w-px bg-slate-100" />
-
-      <div className="text-right">
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
-            isActive ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-          }`}
-        >
-          {status.toUpperCase()}
+    <section className="flex items-center gap-4 px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-indigo-100 transition-colors">
+      <div className="flex flex-col">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          Subscription
         </span>
-        {!isActive && (
-          <p className="text-[9px] text-amber-600 font-medium mt-1">Deployment Locked</p>
-        )}
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-black text-slate-900 uppercase">
+            {isPro ? 'Pro Plan' : 'Free Tier'}
+          </p>
+          {isPro && (
+            <div
+              className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"
+              title="Active Status"
+            />
+          )}
+        </div>
       </div>
-    </div>
+
+      {!isPro && (
+        <>
+          <div className="h-8 w-px bg-slate-100" aria-hidden="true" />
+          <div className="flex flex-col items-end">
+            <span className="bg-rose-50 text-rose-600 text-[10px] px-2 py-0.5 rounded-md font-bold border border-rose-100">
+              LOCKED
+            </span>
+            <p className="text-[9px] text-slate-400 mt-1 italic tracking-tight">
+              Upgrade to unlock Blueprints
+            </p>
+          </div>
+        </>
+      )}
+    </section>
   )
 }

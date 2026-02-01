@@ -29,13 +29,18 @@ export async function POST(req: NextRequest) {
     if (relevantEvents.includes(event.type)) {
       const subscription = event.data.object as Stripe.Subscription
 
-      await db
-        .update(organizations)
-        .set({
-          planStatus: subscription.status,
-          stripeSubscriptionId: subscription.id,
-        })
-        .where(eq(organizations.stripeCustomerId, subscription.customer as string))
+      const orgId = subscription.metadata?.orgId
+
+      if (orgId) {
+        await db
+          .update(organizations)
+          .set({
+            planStatus: subscription.status,
+            stripeSubscriptionId: subscription.id,
+            stripeCustomerId: subscription.customer as string,
+          })
+          .where(eq(organizations.id, orgId))
+      }
     }
 
     return NextResponse.json({ received: true })

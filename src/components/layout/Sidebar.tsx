@@ -10,22 +10,23 @@ interface SidebarProps {
   orgId: string
 }
 
+const navigation = [
+  { name: 'Dashboard', href: '', icon: LayoutDashboard },
+  { name: 'Workflows', href: '/workflows', icon: Zap },
+  { name: 'Security Vault', href: '/vault', icon: ShieldCheck },
+  { name: 'Activity', href: '/activity', icon: Activity },
+  { name: 'Billing', href: '/billing', icon: CreditCard },
+]
+
 export default function Sidebar({ orgId }: SidebarProps) {
   const pathname = usePathname()
-
-  const navigation = [
-    { name: 'Dashboard', href: `/dashboard/${orgId}`, icon: LayoutDashboard },
-    { name: 'Workflows', href: `/dashboard/${orgId}/workflows`, icon: Zap },
-    { name: 'Security Vault', href: `/dashboard/${orgId}/vault`, icon: ShieldCheck },
-    { name: 'Activity', href: `/dashboard/${orgId}/activity`, icon: Activity },
-    { name: 'Billing', href: `/dashboard/${orgId}/billing`, icon: CreditCard },
-  ]
+  const basePath = `/dashboard/${orgId}`
 
   return (
-    <div className="flex h-full w-64 flex-col bg-slate-900 text-slate-300">
+    <aside className="flex h-full w-64 flex-col bg-slate-900 text-slate-300">
       <div className="flex h-16 items-center px-6 border-b border-slate-800">
-        <span className="text-xl font-bold bg-linear-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-          TESSERA
+        <span className="text-xl font-black tracking-tighter text-white">
+          TESSERA<span className="text-indigo-500">.</span>
         </span>
       </div>
 
@@ -44,24 +45,26 @@ export default function Sidebar({ orgId }: SidebarProps) {
         />
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Main Navigation">
         {navigation.map(item => {
-          const isActive = pathname === item.href
+          const fullHref = `${basePath}${item.href}`
+          const isActive = pathname === fullHref || (item.href === '' && pathname === basePath)
+
           return (
             <Link
               key={item.name}
-              href={item.href}
+              href={fullHref}
               className={cn(
-                'group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all',
+                'group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all',
                 isActive
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/20'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
                   : 'hover:bg-slate-800 hover:text-white'
               )}
             >
               <item.icon
                 className={cn(
                   'mr-3 h-5 w-5 shrink-0',
-                  isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-300'
+                  isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'
                 )}
               />
               {item.name}
@@ -70,15 +73,17 @@ export default function Sidebar({ orgId }: SidebarProps) {
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-800">
-        <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold px-3 mb-2">
-          System Status
+      <footer className="p-4 border-t border-slate-800">
+        <div className="flex items-center px-3 py-2.5 bg-slate-950/50 rounded-xl border border-slate-800">
+          <div className="relative flex h-2 w-2 mr-3">
+            <div className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <div className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </div>
+          <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">
+            System Operational
+          </span>
         </div>
-        <div className="flex items-center px-3 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
-          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse mr-3" />
-          <span className="text-xs font-medium text-emerald-400">Control Plane: Online</span>
-        </div>
-      </div>
-    </div>
+      </footer>
+    </aside>
   )
 }

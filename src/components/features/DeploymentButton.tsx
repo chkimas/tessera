@@ -2,41 +2,52 @@
 
 import { useState } from 'react'
 import { deployWorkflowAction } from '@/actions/workflow-actions'
-import { WorkflowSpecification } from '@/core/domain/specification'
 
 interface Props {
   workflowId: string
-  specification: WorkflowSpecification
 }
 
 export default function DeploymentButton({ workflowId }: Props) {
-  const [isPending, setIsPending] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle')
+  const [errorMessage, setErrorMessage] = useState('')
 
   async function handleDeploy() {
-    setIsPending(true)
+    setStatus('pending')
+    setErrorMessage('')
 
-    const result = await deployWorkflowAction({
-      workflowId,
-      userId: '00000000-0000-0000-0000-000000000000',
-      userRole: 'admin',
-    })
+    const result = await deployWorkflowAction(workflowId)
 
     if (result.success) {
-      alert('Workflow deployed to n8n successfully.')
+      setStatus('success')
+      setTimeout(() => setStatus('idle'), 3000)
     } else {
-      alert(`Deployment failed: ${result.error}`)
+      setStatus('error')
+      setErrorMessage(result.error || 'Deployment failed')
     }
-
-    setIsPending(false)
   }
 
   return (
-    <button
-      onClick={handleDeploy}
-      disabled={isPending}
-      className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 disabled:opacity-50 transition-colors"
-    >
-      {isPending ? 'Deploying...' : 'Push to n8n'}
-    </button>
+    <div className="flex flex-col items-end gap-2">
+      <button
+        onClick={handleDeploy}
+        disabled={status === 'pending'}
+        className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-md hover:bg-slate-800 disabled:opacity-50 transition-colors focus:ring-2 focus:ring-slate-400 focus:outline-none"
+        aria-busy={status === 'pending'}
+      >
+        {status === 'pending' ? 'Pushing...' : 'Push to n8n'}
+      </button>
+
+      {status === 'success' && (
+        <span className="text-xs text-emerald-600 font-medium animate-in fade-in slide-in-from-top-1">
+          Successfully deployed
+        </span>
+      )}
+
+      {status === 'error' && (
+        <span className="text-xs text-rose-600 font-medium animate-in fade-in slide-in-from-top-1">
+          {errorMessage}
+        </span>
+      )}
+    </div>
   )
 }

@@ -6,39 +6,53 @@ import { eq } from 'drizzle-orm'
 export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const workflowId = searchParams.get('id')
+  const systemActor = `SYSTEM_EXECUTION_NODE_${process.env.NODE_ENV}`
 
-  if (!workflowId) {
-    return NextResponse.json({ error: 'Workflow ID is required' }, { status: 400 })
-  }
+  if (!workflowId) return NextResponse.json({ error: 'ID required' }, { status: 400 })
 
   try {
     const workflow = await db.query.workflows.findFirst({
       where: eq(workflows.id, workflowId),
     })
 
-    if (!workflow || workflow.status !== 'published') {
-      return NextResponse.json({ error: 'Workflow not found or inactive' }, { status: 404 })
+    if (!workflow || workflow.status !== 'deployed') {
+      return NextResponse.json({ error: 'Workflow unavailable' }, { status: 404 })
     }
 
-    const payload = await req.json()
+    const body = await req.json()
 
-    await db.insert(auditLogs).values({
-      action: 'WORKFLOW_EXECUTED',
-      workflowId: workflow.id,
-      actorId: '00000000-0000-0000-0000-000000000000',
-    })
+    const [triggerLog] = await db
+      .insert(auditLogs)
+      .values({
+        action: 'EXECUTION_START',
+        workflowId: workflow.id,
+        actorId: systemActor,
+        payload: { input: body },
+      })
+      .returning({ id: auditLogs.id })
 
     const n8nUrl = `${process.env.N8N_WEBHOOK_URL}/${workflowId}`
     const response = await fetch(n8nUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
     })
 
-    const data = await response.json()
-    return NextResponse.json({ success: true, data })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Execution failed'
-    return NextResponse.json({ error: message }, { status: 500 })
+    const result = await response.json()
+
+    await db.insert(auditLogs).values({
+      parentId: triggerLog.id,
+      action: response.ok ? 'EXECUTION_SUCCESS' : 'EXECUTION_FAILED',
+      workflowId: workflow.id,
+      actorId: systemActor,
+      payload: {
+        status: response.status,
+        output: result,
+      },
+    })
+
+    return NextResponse.json({ success: response.ok, data: result })
+  } catch {
+    return NextResponse.json({ error: 'Critical Execution Failure' }, { status: 500 })
   }
 }
