@@ -5,11 +5,11 @@ const ROLE_PERMISSIONS: Record<string, ReadonlyArray<UserRole>> = {
   CAN_EDIT: ['developer', 'admin'],
   CAN_APPROVE: ['approver', 'admin'],
   CAN_DEPLOY: ['admin'],
-}
+} as const
 
 const PLAN_CAPABILITIES: Record<string, ReadonlyArray<PlanStatus>> = {
   ALLOW_DEPLOYMENT: ['trialing', 'active', 'past_due'],
-}
+} as const
 
 export function canUserDeploy(
   role: UserRole,
@@ -24,4 +24,16 @@ export function canUserDeploy(
   }
 
   return { allowed: true }
+}
+
+export function canUserPerformAction(
+  userRole: UserRole,
+  action: keyof typeof ROLE_PERMISSIONS
+): boolean {
+  return ROLE_PERMISSIONS[action].includes(userRole)
+}
+
+export function canApproveWorkflow(userId: string, creatorId: string, userRole: UserRole): boolean {
+  if (userRole !== 'approver' && userRole !== 'admin') return false
+  return userId !== creatorId
 }
