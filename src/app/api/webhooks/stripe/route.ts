@@ -5,77 +5,75 @@ import { organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import type Stripe from 'stripe'
 
-function normalizeStripeStatus(status: Stripe.Subscription.Status): string {
-  const statusMap: Record<string, string> = {
-    active: 'active',
-    trialing: 'trialing',
-    past_due: 'past_due',
-    unpaid: 'unpaid',
-    canceled: 'canceled',
-    incomplete: 'free',
-    incomplete_expired: 'free',
+const PLAN_STATUS_MAP: Record<string, string> = {
+  active: 'active',
+  trialing: 'trialing',
+  past_due: 'past_due',
+  unpaid: 'unpaid',
+  canceled: 'canceled',
+}
+
+async function updateOrgPlan(
+  orgId: string,
+  data: {
+    status: string
+    subId: string
+    customerId: string
   }
-  return statusMap[status] || 'free'
+) {
+  const planStatus = PLAN_STATUS_MAP[data.status] || 'free'
+  await db
+    .update(organizations)
+    .set({
+      planStatus,
+      stripeSubscriptionId: data.subId,
+      stripeCustomerId: data.customerId,
+    })
+    .where(eq(organizations.id, orgId))
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
-  const signature = req.headers.get('stripe-signature')
+  const signature = req.headers.get('stripe-signature')!
+  let event: Stripe.Event
 
-  if (!signature) {
-    return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
+  try {
+    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!)
+  } catch {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
   try {
-    const event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET as string
-    )
-
-    const subscriptionEvents = [
-      'customer.subscription.created',
-      'customer.subscription.updated',
-      'customer.subscription.deleted',
-    ]
-
-    if (subscriptionEvents.includes(event.type)) {
-      const subscription = event.data.object as Stripe.Subscription
-      const orgId = subscription.metadata?.orgId
-
-      if (orgId) {
-        await db
-          .update(organizations)
-          .set({
-            planStatus: normalizeStripeStatus(subscription.status),
-            stripeSubscriptionId: subscription.id,
-            stripeCustomerId: subscription.customer as string,
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session
+        if (session.metadata?.orgId && session.subscription) {
+          await updateOrgPlan(session.metadata.orgId, {
+            status: 'active',
+            subId: session.subscription as string,
+            customerId: session.customer as string,
           })
-          .where(eq(organizations.id, orgId))
+        }
+        break
+      }
+
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted': {
+        const sub = event.data.object as Stripe.Subscription
+        if (sub.metadata?.orgId) {
+          await updateOrgPlan(sub.metadata.orgId, {
+            status: sub.status,
+            subId: sub.id,
+            customerId: sub.customer as string,
+          })
+        }
+        break
       }
     }
 
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session
-      const orgId = session.metadata?.orgId
-
-      if (orgId && session.subscription) {
-        await db
-          .update(organizations)
-          .set({
-            planStatus: 'active',
-            stripeSubscriptionId: session.subscription as string,
-            stripeCustomerId: session.customer as string,
-          })
-          .where(eq(organizations.id, orgId))
-      }
-    }
-
-    return NextResponse.json({ received: true })
+    return NextResponse.json({ success: true })
   } catch (err) {
-    console.error('Webhook error:', err)
-
-    const message = err instanceof Error ? err.message : 'Webhook error'
-    return NextResponse.json({ error: message }, { status: 400 })
+    console.error('Stripe Webhook Error:', err)
+    return NextResponse.json({ error: 'Database update failed' }, { status: 500 })
   }
 }
