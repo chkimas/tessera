@@ -1,26 +1,168 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Fonts */
+  --font-sans: var(--font-satoshi);
+  --font-display: var(--font-cabinet);
+  --font-mono: var(--font-satoshi);
+
+  /* Radius system */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Color mappings */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Status colors */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+
+  /* Chart colors */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Sidebar colors */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.5rem;
+
+  /* Tessera Brand Colors (Indigo) */
+  --primary: 239 68% 58%; /* indigo-600 #4f46e5 */
+  --primary-foreground: 0 0% 100%; /* white */
+
+  /* Semantic Status Colors */
+  --success: 160 84% 39%; /* emerald-500 #10b981 */
+  --warning: 38 92% 50%; /* amber-500 #f59e0b */
+  --destructive: 0 84% 60%; /* red-500 #ef4444 */
+  --info: 217 91% 60%; /* blue-500 #3b82f6 */
+
+  /* Neutral Scale */
+  --background: 210 40% 98%; /* slate-50 #f8fafc */
+  --foreground: 222 47% 11%; /* slate-900 #0f172a */
+
+  --card: 0 0% 100%; /* white */
+  --card-foreground: 215 25% 27%; /* slate-800 #1e293b */
+
+  --popover: 0 0% 100%; /* white */
+  --popover-foreground: 222 47% 11%; /* slate-900 */
+
+  --secondary: 210 40% 96%; /* slate-100 #f1f5f9 */
+  --secondary-foreground: 222 47% 11%; /* slate-900 */
+
+  --muted: 210 40% 96%; /* slate-100 */
+  --muted-foreground: 215 16% 47%; /* slate-600 #475569 */
+
+  --accent: 239 84% 67%; /* indigo-400 #818cf8 */
+  --accent-foreground: 0 0% 100%; /* white */
+
+  --border: 214 32% 91%; /* slate-200 #e2e8f0 */
+  --input: 210 40% 98%; /* slate-50 */
+  --ring: 239 68% 58%; /* indigo-600 focus ring */
+
+  /* Chart colors */
+  --chart-1: 160 84% 39%; /* emerald-500 */
+  --chart-2: 217 91% 60%; /* blue-500 */
+  --chart-3: 38 92% 50%; /* amber-500 */
+  --chart-4: 280 89% 60%; /* violet-500 */
+  --chart-5: 0 84% 60%; /* red-500 */
+
+  /* Sidebar (Dark) */
+  --sidebar: 222 47% 11%; /* slate-900 #0f172a */
+  --sidebar-foreground: 210 40% 98%; /* slate-50 */
+  --sidebar-primary: 239 68% 58%; /* indigo-600 */
+  --sidebar-primary-foreground: 0 0% 100%; /* white */
+  --sidebar-accent: 217 33% 17%; /* slate-800 #1e293b */
+  --sidebar-accent-foreground: 0 0% 100%; /* white */
+  --sidebar-border: 217 33% 17%; /* slate-800 */
+  --sidebar-ring: 239 68% 58%; /* indigo-600 */
+}
+
+.dark {
+  --background: 222 47% 11%; /* slate-900 */
+  --foreground: 210 40% 98%; /* slate-50 */
+
+  --card: 217 33% 17%; /* slate-800 */
+  --card-foreground: 210 40% 98%; /* slate-50 */
+
+  --popover: 217 33% 17%; /* slate-800 */
+  --popover-foreground: 210 40% 98%; /* slate-50 */
+
+  --primary: 239 84% 67%; /* indigo-400 */
+  --primary-foreground: 222 47% 11%; /* slate-900 */
+
+  --secondary: 215 28% 17%; /* slate-700 */
+  --secondary-foreground: 210 40% 98%; /* slate-50 */
+
+  --muted: 215 28% 17%; /* slate-700 */
+  --muted-foreground: 215 20% 65%; /* slate-400 */
+
+  --accent: 217 33% 17%; /* slate-800 */
+  --accent-foreground: 210 40% 98%; /* slate-50 */
+
+  --destructive: 0 84% 60%; /* red-500 */
+
+  --border: 215 28% 17%; /* slate-700 */
+  --input: 215 28% 17%; /* slate-700 */
+  --ring: 239 84% 67%; /* indigo-400 */
+
+  --chart-1: 160 84% 39%;
+  --chart-2: 217 91% 60%;
+  --chart-3: 38 92% 50%;
+  --chart-4: 280 89% 60%;
+  --chart-5: 0 84% 60%;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Mosaic background pattern */
+.mosaic-bg {
+  background-image:
+    linear-gradient(to right, hsl(var(--border) / 0.3) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border) / 0.3) 1px, transparent 1px);
+  background-size: 32px 32px;
 }

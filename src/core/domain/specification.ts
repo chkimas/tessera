@@ -14,15 +14,14 @@ export interface WorkflowNode {
   id: string
   name: string
   type: NodeType
-  // Based on the type, only specific configurations are valid
   data: TriggerSource | ActionTarget | Record<string, unknown>
   position: { x: number; y: number }
 }
 
 export interface WorkflowEdge {
   id: string
-  source: string // ID of the origin node
-  target: string // ID of the destination node
+  source: string
+  target: string
 }
 
 export interface WorkflowSpecification {
