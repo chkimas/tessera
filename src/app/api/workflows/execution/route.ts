@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     const [triggerLog] = await db
       .insert(auditLogs)
       .values({
+        orgId: workflow.orgId,
         action: 'EXECUTION_START',
         workflowId: workflow.id,
         actorId: systemActor,
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
     const result = await response.json()
 
     await db.insert(auditLogs).values({
+      orgId: workflow.orgId,
       parentId: triggerLog.id,
       action: response.ok ? 'EXECUTION_SUCCESS' : 'EXECUTION_FAILED',
       workflowId: workflow.id,

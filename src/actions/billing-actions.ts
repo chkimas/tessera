@@ -3,8 +3,19 @@
 import { stripe } from '@/lib/stripe/client'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
+import { auth } from '@clerk/nextjs/server'
 
 export async function createCheckoutSessionAction(orgId: string, plan: 'pro' | 'enterprise') {
+  const { userId, orgId: sessionOrgId } = await auth()
+
+  if (!userId || !sessionOrgId) {
+    throw new Error('Authentication required')
+  }
+
+  if (orgId !== sessionOrgId) {
+    throw new Error('Access denied: Organization mismatch')
+  }
+
   const origin = (await headers()).get('origin')
 
   const priceId =

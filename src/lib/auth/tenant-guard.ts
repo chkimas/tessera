@@ -9,8 +9,6 @@ export async function protectTenant(requestedOrgId: string) {
   }
 
   if (orgId !== requestedOrgId) {
-    console.warn(`Unauthorized access attempt: User ${userId} tried to access Org ${requestedOrgId}`)
-
     if (orgId) {
       redirect(`/dashboard/${orgId}`)
     } else {
@@ -19,4 +17,25 @@ export async function protectTenant(requestedOrgId: string) {
   }
 
   return { userId, orgId }
+}
+
+export function withTenantProtection<Args extends unknown[], Return>(
+  handler: (...args: Args) => Promise<Return>
+): (...args: Args) => Promise<Return> {
+  return async (...args: Args): Promise<Return> => {
+    const { userId, orgId } = await auth()
+
+    if (!userId || !orgId) {
+      throw new Error('Authentication required')
+    }
+
+    const firstArg = args[0]
+    if (typeof firstArg === 'string' && firstArg.startsWith('org_')) {
+      if (firstArg !== orgId) {
+        throw new Error('Access denied: Organization mismatch')
+      }
+    }
+
+    return handler(...args)
+  }
 }

@@ -16,8 +16,8 @@ export async function seedInitialData() {
     .values({
       id: orgId,
       name: 'Default Workspace',
-      planStatus: 'active',
-      stripeCustomerId: `cus_${Math.random().toString(36).substring(7)}`,
+      planStatus: 'free',
+      stripeCustomerId: null,
     })
     .onConflictDoUpdate({
       target: organizations.id,

@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { workflows } from '@/lib/db/schema'
 import { revalidatePath } from 'next/cache'
 import { WorkflowSpecification } from '@/core/domain/specification'
-import { nanoid } from 'nanoid'
+import { auth } from '@clerk/nextjs/server'
 
 const BLUEPRINTS: Record<string, WorkflowSpecification> = {
   'webhook-relay': {
@@ -140,6 +140,16 @@ const BLUEPRINTS: Record<string, WorkflowSpecification> = {
 }
 
 export async function createFromTemplateAction(orgId: string, templateId: string) {
+  const { userId, orgId: sessionOrgId } = await auth()
+
+  if (!userId || !sessionOrgId) {
+    throw new Error('Authentication required')
+  }
+
+  if (orgId !== sessionOrgId) {
+    throw new Error('Access denied: Organization mismatch')
+  }
+
   const blueprint = BLUEPRINTS[templateId]
 
   if (!blueprint) throw new Error('Template not found')
@@ -147,7 +157,6 @@ export async function createFromTemplateAction(orgId: string, templateId: string
   const [newWorkflow] = await db
     .insert(workflows)
     .values({
-      id: nanoid(),
       orgId,
       name: `${templateId
         .split('-')

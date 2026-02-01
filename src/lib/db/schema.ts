@@ -9,6 +9,7 @@ import {
   index,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
+import { nanoid } from 'nanoid'
 
 export const statusEnum = pgEnum('workflow_status', ['draft', 'approved', 'deployed', 'paused'])
 export const userRoleEnum = pgEnum('user_role', ['viewer', 'developer', 'approver', 'admin'])
@@ -28,7 +29,7 @@ export const organizations = pgTable(
 )
 
 export const users = pgTable('users', {
-  id: varchar('id', { length: 255 }).primaryKey(), // Clerk User ID
+  id: varchar('id', { length: 255 }).primaryKey(),
   orgId: varchar('org_id', { length: 255 }).references(() => organizations.id),
   email: varchar('email', { length: 255 }).notNull().unique(),
   role: userRoleEnum('role').default('viewer').notNull(),
@@ -38,7 +39,9 @@ export const users = pgTable('users', {
 export const workflows = pgTable(
   'workflows',
   {
-    id: varchar('id', { length: 255 }).primaryKey(),
+    id: varchar('id', { length: 255 })
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
     orgId: varchar('org_id', { length: 255 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
@@ -48,13 +51,15 @@ export const workflows = pgTable(
     version: integer('version').default(1).notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  t => [index('wf_org_idx').on(t.orgId)]
+  t => [index('wf_org_idx').on(t.orgId), index('wf_org_status_idx').on(t.orgId, t.status)]
 )
 
 export const auditLogs = pgTable(
   'audit_logs',
   {
-    id: varchar('id', { length: 255 }).primaryKey(),
+    id: varchar('id', { length: 255 })
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
     parentId: varchar('parent_id', { length: 255 }),
     orgId: varchar('org_id', { length: 255 })
       .notNull()
@@ -71,23 +76,29 @@ export const auditLogs = pgTable(
     index('audit_workflow_idx').on(t.workflowId),
     index('audit_parent_idx').on(t.parentId),
     index('audit_org_idx').on(t.orgId),
+    index('audit_org_workflow_timestamp_idx').on(t.orgId, t.workflowId, t.timestamp),
   ]
 )
 
 export const secrets = pgTable(
   'secrets',
   {
-    id: varchar('id', { length: 255 }).primaryKey(),
+    id: varchar('id', { length: 255 })
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
     orgId: varchar('org_id', { length: 255 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     keyName: varchar('key_name', { length: 255 }).notNull(),
     encryptedValue: text('encrypted_value').notNull(),
     iv: text('iv').notNull(),
-    authTag: text('auth_tag').notNull(),
+    tag: text('tag').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  t => [index('secrets_org_idx').on(t.orgId)]
+  t => [
+    index('secrets_org_idx').on(t.orgId),
+    index('secrets_org_keyname_idx').on(t.orgId, t.keyName),
+  ]
 )
 
 export const organizationRelations = relations(organizations, ({ many }) => ({

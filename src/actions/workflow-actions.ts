@@ -58,6 +58,7 @@ export async function deployWorkflowAction(workflowId: string): Promise<DeployRe
         .where(eq(workflows.id, workflowId))
 
       await tx.insert(auditLogs).values({
+        orgId: orgId,
         action: 'WORKFLOW_DEPLOYED',
         actorId: userId,
         workflowId: workflowId,
