@@ -1,12 +1,11 @@
 import { db } from '@/lib/db'
 import { secrets } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
-import { auth } from '@clerk/nextjs/server'
-import { notFound } from 'next/navigation'
 import SecretsForm from '@/components/features/SecretsForm'
 import SecretsList from '@/components/features/SecretsList'
 import { ShieldCheck, Lock } from 'lucide-react'
 import { PageHeader } from '@/components/tessera'
+import { protectTenant } from '@/lib/auth/tenant-guard'
 
 interface PageProps {
   params: Promise<{ orgId: string }>
@@ -14,8 +13,7 @@ interface PageProps {
 
 export default async function VaultPage({ params }: PageProps) {
   const { orgId } = await params
-  const { userId } = await auth()
-  if (!userId) notFound()
+  await protectTenant(orgId)
 
   const orgSecrets = await db.query.secrets.findMany({
     where: eq(secrets.orgId, orgId),

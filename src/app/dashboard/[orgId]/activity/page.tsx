@@ -1,12 +1,11 @@
 import { db } from '@/lib/db'
 import { auditLogs } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
-import { auth } from '@clerk/nextjs/server'
-import { notFound } from 'next/navigation'
 import { ExecutionHistory } from '@/components/features/ExecutionHistory'
 import { Activity, Download } from 'lucide-react'
 import { PageHeader } from '@/components/tessera'
 import { Button } from '@/components/ui/button'
+import { protectTenant } from '@/lib/auth/tenant-guard'
 
 interface PageProps {
   params: Promise<{ orgId: string }>
@@ -14,8 +13,7 @@ interface PageProps {
 
 export default async function ActivityPage({ params }: PageProps) {
   const { orgId } = await params
-  const { userId } = await auth()
-  if (!userId) notFound()
+  await protectTenant(orgId)
 
   const rawLogs = await db.query.auditLogs.findMany({
     where: eq(auditLogs.orgId, orgId),

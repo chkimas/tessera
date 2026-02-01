@@ -1,7 +1,6 @@
 import { db } from '@/lib/db'
 import { organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { auth } from '@clerk/nextjs/server'
 import { notFound } from 'next/navigation'
 import { createCheckoutSessionAction } from '@/actions/billing-actions'
 import {
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { protectTenant } from '@/lib/auth/tenant-guard'
 
 interface PageProps {
   params: Promise<{ orgId: string }>
@@ -23,8 +23,7 @@ interface PageProps {
 
 export default async function BillingPage({ params }: PageProps) {
   const { orgId } = await params
-  const { userId } = await auth()
-  if (!userId) notFound()
+  await protectTenant(orgId)
 
   const org = await db.query.organizations.findFirst({
     where: eq(organizations.id, orgId),

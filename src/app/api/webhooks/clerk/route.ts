@@ -2,7 +2,7 @@ import { Webhook } from 'svix'
 import { headers } from 'next/headers'
 import { WebhookEvent } from '@clerk/nextjs/server'
 import { db } from '@/lib/db'
-import { organizations } from '@/lib/db/schema'
+import { organizations, users } from '@/lib/db/schema'
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
@@ -38,16 +38,31 @@ export async function POST(req: Request) {
   }
 
   const eventType = evt.type
+
   if (eventType === 'organization.created') {
     const { id, name } = evt.data
 
     await db.insert(organizations).values({
       id: id,
       name: name,
-      planStatus: 'inactive',
+      planStatus: 'free',
     })
+  }
 
-    console.log(`🏢 Sync: Organization ${name} created in Database.`)
+  if (eventType === 'organizationMembership.created') {
+    const { organization, public_user_data } = evt.data
+
+    if (public_user_data && organization) {
+      await db
+        .insert(users)
+        .values({
+          id: public_user_data.user_id,
+          orgId: organization.id,
+          email: public_user_data.identifier || '',
+          role: 'viewer',
+        })
+        .onConflictDoNothing()
+    }
   }
 
   return new Response('', { status: 200 })

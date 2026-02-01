@@ -5,6 +5,19 @@ import { organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import type Stripe from 'stripe'
 
+function normalizeStripeStatus(status: Stripe.Subscription.Status): string {
+  const statusMap: Record<string, string> = {
+    active: 'active',
+    trialing: 'trialing',
+    past_due: 'past_due',
+    unpaid: 'unpaid',
+    canceled: 'canceled',
+    incomplete: 'free',
+    incomplete_expired: 'free',
+  }
+  return statusMap[status] || 'free'
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.text()
   const signature = req.headers.get('stripe-signature')
@@ -35,7 +48,7 @@ export async function POST(req: NextRequest) {
         await db
           .update(organizations)
           .set({
-            planStatus: subscription.status,
+            planStatus: normalizeStripeStatus(subscription.status),
             stripeSubscriptionId: subscription.id,
             stripeCustomerId: subscription.customer as string,
           })

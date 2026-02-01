@@ -3,7 +3,6 @@ import { organizations, workflows, auditLogs, secrets } from '@/lib/db/schema'
 import { eq, desc, count, and, gte } from 'drizzle-orm'
 import { ExecutionHistory } from '@/components/features/ExecutionHistory'
 import TemplateGallery from '@/components/features/TemplateGallery'
-import { auth } from '@clerk/nextjs/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -16,6 +15,7 @@ import {
   ArrowUpRight,
   Plus,
 } from 'lucide-react'
+import { protectTenant } from '@/lib/auth/tenant-guard'
 
 interface PageProps {
   params: Promise<{ orgId: string }>
@@ -23,8 +23,7 @@ interface PageProps {
 
 export default async function DashboardPage({ params }: PageProps) {
   const { orgId } = await params
-  const { userId, orgSlug } = await auth()
-  if (!userId) notFound()
+  await protectTenant(orgId)
 
   let org = await db.query.organizations.findFirst({
     where: eq(organizations.id, orgId),
@@ -35,7 +34,7 @@ export default async function DashboardPage({ params }: PageProps) {
       .insert(organizations)
       .values({
         id: orgId,
-        name: orgSlug || 'New Workspace',
+        name: 'New Workspace',
         planStatus: 'free',
       })
       .onConflictDoNothing()
