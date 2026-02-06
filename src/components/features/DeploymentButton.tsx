@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { deployWorkflowAction } from '@/actions/workflow-actions'
+import { revalidatePath } from 'next/cache'
 
 interface Props {
   workflowId: string
@@ -19,7 +20,7 @@ export default function DeploymentButton({ workflowId }: Props) {
 
     if (result.success) {
       setStatus('success')
-      setTimeout(() => setStatus('idle'), 3000)
+      revalidatePath(`/dashboard/[orgId]/workflows`)
     } else {
       setStatus('error')
       setErrorMessage(result.error || 'Deployment failed')

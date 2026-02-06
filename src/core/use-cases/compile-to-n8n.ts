@@ -37,13 +37,13 @@ function mapNodeParameters(node: WorkflowNode, workflowId: string): Record<strin
     if (trigger.type === 'WEBHOOK') {
       return {
         ...baseParams,
-        path: trigger.path || workflowId,
-        httpMethod: trigger.method || 'POST',
+        path: (trigger as { path?: string }).path || `/${workflowId}`,
+        httpMethod: (trigger as { method?: string }).method || 'POST',
         responseMode: 'onReceived',
       }
     }
     if (trigger.type === 'SCHEDULE') {
-      return { ...baseParams, cronExpression: trigger.cron }
+      return { ...baseParams, cronExpression: (trigger as { cron: string }).cron }
     }
   }
 
@@ -53,25 +53,27 @@ function mapNodeParameters(node: WorkflowNode, workflowId: string): Record<strin
     if (action.type === 'HTTP_REQUEST') {
       return {
         ...baseParams,
-        url: action.url,
-        method: action.method,
+        url: (action as { url: string }).url,
+        method: (action as { method: string }).method,
         sendBody: !!action.body,
         specifyBody: action.body ? 'json' : undefined,
         jsonBody: action.body ? JSON.stringify(action.body) : undefined,
-        headerParameters: action.headers
+        headerParameters: (action as { headers?: Record<string, string> }).headers
           ? {
-              parameters: Object.entries(action.headers).map(([name, value]) => ({ name, value })),
+              parameters: Object.entries(
+                (action as { headers: Record<string, string> }).headers
+              ).map(([name, value]) => ({ name, value })),
             }
           : undefined,
       }
     }
 
     if (action.type === 'DATABASE_UPSERT') {
-      return { ...baseParams, operation: 'upsert', table: action.table }
+      return { ...baseParams, operation: 'upsert', table: (action as { table: string }).table }
     }
   }
 
-  return { ...baseParams, ...node.data }
+  return { ...baseParams, ...(node.data as Record<string, unknown>) }
 }
 
 export function compileSpecToN8n(spec: WorkflowSpecification, workflowId: string) {

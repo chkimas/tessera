@@ -3,10 +3,10 @@
 import { db } from '@/lib/db'
 import { workflows } from '@/lib/db/schema'
 import { revalidatePath } from 'next/cache'
-import { WorkflowSpecification } from '@/core/domain/specification'
 import { compileSpecToN8n } from '@/core/use-cases/compile-to-n8n'
 import { n8nClient } from '@/lib/n8n/client'
 import { auth } from '@clerk/nextjs/server'
+import { WorkflowSpecification } from '@/core/domain/specification'
 
 const BLUEPRINTS: Record<string, WorkflowSpecification> = {
   'webhook-relay': {
@@ -267,11 +267,23 @@ export async function createFromTemplateAction(
   if (!blueprint) throw new Error('Template not found')
 
   const compiled = compileSpecToN8n(blueprint, `tessera-${templateId}-${Date.now()}`)
+  const workflowDisplayName = `${templateId.replace(/-/g, ' ').toUpperCase()} (${orgId.slice(-4)})`
+  const n8nDeployment = await n8nClient.deployWorkflow(workflowDisplayName, {
+    ...compiled,
+    staticData: parameters || null,
+  })
 
-  const n8nDeployment = await n8nClient.deployWorkflow(
-    `${templateId.replace(/-/g, ' ').toUpperCase()} (${orgId.slice(-4)})`,
-    { ...compiled, staticData: parameters || null }
+  await n8nClient.activateWorkflow(n8nDeployment.id)
+  await new Promise(resolve => setTimeout(resolve, 2000))
+
+  const webhookTriggerNode = blueprint.nodes.find(
+    node => node.data && typeof node.data === 'object' && 'path' in node.data
   )
+  const webhookPath = (webhookTriggerNode?.data as { path?: string })?.path || null
+
+  const n8nWebhookUrl = webhookPath
+    ? `${process.env.N8N_WEBHOOK_URL}/webhook/${n8nDeployment.id}/${webhookPath}`
+    : null
 
   const [workflow] = await db
     .insert(workflows)
@@ -281,7 +293,7 @@ export async function createFromTemplateAction(
       status: 'deployed',
       specification: blueprint,
       n8nWorkflowId: n8nDeployment.id,
-      n8nWebhookUrl: `${process.env.N8N_WEBHOOK_URL}/webhook/${n8nDeployment.id}`,
+      n8nWebhookUrl,
       parameters: parameters || {},
     })
     .returning()

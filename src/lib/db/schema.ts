@@ -50,8 +50,8 @@ export const workflows = pgTable(
     specification: jsonb('specification').notNull(),
     version: integer('version').default(1).notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
-    n8nWorkflowId: text('n8n_workflow_id').notNull(),
-    n8nWebhookUrl: text('n8n_webhook_url').notNull(),
+    n8nWorkflowId: text('n8n_workflow_id'),
+    n8nWebhookUrl: text('n8n_webhook_url'),
     parameters: jsonb('parameters').default({}),
   },
   t => [index('wf_org_idx').on(t.orgId), index('wf_org_status_idx').on(t.orgId, t.status)]
